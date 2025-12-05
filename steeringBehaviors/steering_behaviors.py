@@ -26,3 +26,22 @@ class SteeringBehaviors:
             return pygame.Vector2(0, 0)
         desired_velocity = to_target.normalize() * self.agent.max_speed
         return desired_velocity - self.agent.velocity
+
+    def arrive(self, target_pos: pygame.Vector2, deceleration: str = 'normal') -> pygame.Vector2:
+        # deceleration: 'slow', 'normal', 'fast'
+        deceleration_mapping = {'fast': 1, 'normal': 2, 'slow': 3}
+        decel = deceleration_mapping.get(deceleration, 2)
+
+        to_target = target_pos - self.agent.pos
+        dist = to_target.length()
+
+        if dist > 0:
+            deceleration_tweaker = 1.3
+            # prędkość wymagana, aby dojść do celu
+            speed = dist / (decel * deceleration_tweaker)
+            speed = min(speed, self.agent.max_speed)
+
+            desired_velocity = to_target * speed / dist
+            return desired_velocity - self.agent.velocity
+
+        return pygame.Vector2(0, 0)

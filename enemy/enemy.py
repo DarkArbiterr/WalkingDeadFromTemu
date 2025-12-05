@@ -25,16 +25,19 @@ class Enemy:
 
         # Steering behaviors
         if player is not None:
-            # SEEK: jeśli gracz jest dalej niż panic_distance
-            panic_distance = 200
-            to_player = player.pos - self.pos
+            # ARRIVE - deceleration: 'slow', 'normal', 'fast'
+            self.steering_force += self.steering.arrive(player.pos, deceleration='normal')
 
-            if to_player.length_squared() <= panic_distance ** 2:
-                # gracz jest blisko -> FLEE
-                self.steering_force += self.steering.flee(player.pos, panic_distance)
-            else:
-                # gracz daleko -> SEEK
-                self.steering_force += self.steering.seek(player.pos)
+            # SEEK I FLEE:
+            # panic_distance = 200
+            # to_player = player.pos - self.pos
+            #
+            # if to_player.length_squared() <= panic_distance ** 2:
+            #     # gracz jest blisko -> FLEE
+            #     self.steering_force += self.steering.flee(player.pos, panic_distance)
+            # else:
+            #     # gracz daleko -> SEEK
+            #     self.steering_force += self.steering.seek(player.pos)
 
         # przyspieszenie: F = ma
         acceleration = self.steering_force / self.mass

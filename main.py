@@ -42,7 +42,7 @@ def main():
         screen.fill((30, 30, 30))  # background
         player.update(dt, game_map, screen)
         for enemy in game_map.enemies:
-            enemy.update(dt, game_map, player, game_map.enemies)
+            enemy.update(dt, game_map, player)
         player.draw(screen)
         game_map.draw(screen)
         pygame.display.flip()
