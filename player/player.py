@@ -8,7 +8,7 @@ class Player:
         self.y = y
         self.speed = speed
         self.radius = radius  # collider
-        self.angle = 0        # rotation
+        self.angle = 0        # rotacja
         self.shoot_cooldown = 0.5  # w sekundach
         self.time_since_last_shot = 0
         self.want_to_shoot = False
@@ -50,13 +50,20 @@ class Player:
         self.update_angle()
         self.time_since_last_shot += dt
 
+        # sprawdzamy przytrzymanie LPM
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+
+        if mouse_pressed:
+            self.want_to_shoot = True
+
         # jeśli gracz kliknął i cooldown minął to strzel
         if self.want_to_shoot and self.time_since_last_shot >= self.shoot_cooldown:
             self.shoot(game_map.obstacles, screen)
             self.time_since_last_shot = 0
 
         # reset kliknięcia
-        self.want_to_shoot = False
+        if not mouse_pressed:
+            self.want_to_shoot = False
 
     def collide_with_walls(self, map_width, map_height):
         # left wall
@@ -81,7 +88,7 @@ class Player:
 
             if overlap > 0:  # kolizja
                 if dist == 0:
-                    # edge case: środek idealnie się pokrywa → przesuwamy losowo
+                    # edge case: środek idealnie się pokrywa to przesuwamy losowo
                     dx, dy = 1, 0
                     dist = 1
 

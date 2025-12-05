@@ -9,15 +9,17 @@ def main():
     pygame.display.set_caption("Walking Dead From Temu")
     clock = pygame.time.Clock()
 
+    player = Player(30, 30)
+
     # create map
     game_map = GameMap(WINDOW_WIDTH, WINDOW_HEIGHT)
     game_map.generate_obstacles(
         count=OBSTACLE_COUNT,
         min_radius=OBSTACLE_MIN_R,
-        max_radius=OBSTACLE_MAX_R
+        max_radius=OBSTACLE_MAX_R,
+        safe_zone_center = (player.x, player.y),
+        safe_zone_size = 200
     )
-
-    player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
 
     running = True
     while running:
