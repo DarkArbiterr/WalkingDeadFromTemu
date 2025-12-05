@@ -70,3 +70,14 @@ class SteeringBehaviors:
         future_pos = evader.pos + evader.velocity * look_ahead_time
 
         return self.seek(future_pos)
+
+    def evade(self, pursuer):
+        to_pursuer = pursuer.pos - self.agent.pos
+
+        # przewidujemy przyszłą pozycję
+        look_ahead_time = to_pursuer.length() / (self.agent.max_speed + pursuer.velocity.length())
+
+        future_pos = pursuer.pos + pursuer.velocity * look_ahead_time
+
+        # flee
+        return self.flee(future_pos)
