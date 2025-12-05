@@ -58,7 +58,7 @@ class Player:
 
         # jeśli gracz kliknął i cooldown minął to strzel
         if self.want_to_shoot and self.time_since_last_shot >= self.shoot_cooldown:
-            self.shoot(game_map.obstacles, screen)
+            self.shoot(game_map.obstacles, screen, game_map.enemies)
             self.time_since_last_shot = 0
 
         # reset kliknięcia
@@ -100,7 +100,7 @@ class Player:
                 self.x += nx * overlap
                 self.y += ny * overlap
 
-    def shoot(self, obstacles, screen):
+    def shoot(self, obstacles, screen, enemies=None):
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
         # direction (normalize)
@@ -111,6 +111,7 @@ class Player:
         dy /= length
 
         closest_t = None
+        closest_hit = None  # przeszkoda, która zatrzyma promień
 
         # intersection with every obstacle
         for obs in obstacles:
@@ -122,8 +123,23 @@ class Player:
             if t is not None:
                 if closest_t is None or t < closest_t:
                     closest_t = t
+                    closest_hit = obs
 
-        # if hit an obstacle — end ray
+        # sprawdzamy kolizję z enemy
+        if enemies is not None:
+            for enemy in enemies[:]:  # kopiujemy listę, żeby można usuwać
+                t_enemy = ray_circle_intersection(self.x, self.y, dx, dy, enemy.x, enemy.y, enemy.radius)
+                if t_enemy is not None:
+                    # jeśli enemy jest bliżej niż przeszkoda lub brak przeszkody
+                    if closest_t is None or t_enemy < closest_t:
+                        closest_t = t_enemy
+                        closest_hit = enemy
+
+        # jeśli trafiono w enemy - usuwamy
+        if isinstance(closest_hit, type(enemies[0])):  # jest enemy
+            enemies.remove(closest_hit)
+
+        # koniec promienia do rysowania
         if closest_t is not None:
             end_x = self.x + dx * closest_t
             end_y = self.y + dy * closest_t

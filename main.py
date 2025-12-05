@@ -2,6 +2,7 @@ import pygame
 from config import *
 from map.game_map import GameMap
 from player.player import Player
+from enemy.enemy import Enemy
 
 def main():
     pygame.init()
@@ -19,6 +20,13 @@ def main():
         max_radius=OBSTACLE_MAX_R,
         safe_zone_center = (player.x, player.y),
         safe_zone_size = 200
+    )
+
+    game_map.generate_enemies(
+        count=ENEMY_COUNT,
+        enemy_radius=player.radius,
+        safe_zone_center=(player.x, player.y),
+        safe_zone_size=500
     )
 
     running = True
