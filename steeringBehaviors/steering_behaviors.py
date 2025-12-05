@@ -1,5 +1,20 @@
+import math
 import random
 import pygame
+
+def world_to_local(point, agent_pos, heading, side):
+    # Transformacja punktu do lokalnej przestrzeni agenta
+    dx = point.x - agent_pos.x
+    dy = point.y - agent_pos.y
+    local_x = dx * heading.x + dy * heading.y
+    local_y = dx * side.x + dy * side.y
+    return pygame.Vector2(local_x, local_y)
+
+def local_to_world(local_vec, heading, side):
+    # Transformacja wektora z lokalnej przestrzeni do świata
+    world_x = local_vec.x * heading.x + local_vec.y * side.x
+    world_y = local_vec.x * heading.y + local_vec.y * side.y
+    return pygame.Vector2(world_x, world_y)
 
 class SteeringBehaviors:
     def __init__(self, agent):
@@ -12,6 +27,10 @@ class SteeringBehaviors:
 
         # pozycja początkowa celu na okręgu
         self.wander_target = pygame.Vector2(self.wander_radius, 0)
+
+        # parametry do strojenia Obstacle-avoidance
+        self.min_detection_box_length = 120.0  # minimalna długość boxa
+        self.braking_weight = 0.1
 
     def seek(self, target_pos):
         """Seek target position"""
@@ -118,3 +137,48 @@ class SteeringBehaviors:
 
         # 5) Siła sterująca — SEEK do target_world
         return (target_world - self.agent.pos).normalize() * self.agent.max_speed
+
+    def obstacle_avoidance(self, obstacles):
+        if not obstacles:
+            return pygame.Vector2(0, 0)
+
+        # dynamiczna długość boxa zależna od prędkości
+        speed_ratio = self.agent.velocity.length() / self.agent.max_speed
+        detection_box_length = self.min_detection_box_length + speed_ratio * self.min_detection_box_length
+
+        closest_intersection = None
+        dist_to_closest = float('inf')
+        local_pos_of_closest = None
+
+        for obs in obstacles:
+            # transformacja przeszkody do lokalnej przestrzeni agenta
+            local_pos = world_to_local(obs.pos, self.agent.pos, self.agent.heading, self.agent.side)
+
+            if local_pos.x >= 0:  # tylko przeszkody przed agentem
+                expanded_radius = obs.radius + self.agent.radius
+                if abs(local_pos.y) < expanded_radius:
+                    # prosta linia x=0, przecięcie z okręgiem przeszkody
+                    cX = local_pos.x
+                    cY = local_pos.y
+                    sqrt_part = math.sqrt(expanded_radius ** 2 - cY ** 2)
+                    ip = cX - sqrt_part
+                    if ip <= 0:
+                        ip = cX + sqrt_part
+
+                    if ip < dist_to_closest:
+                        dist_to_closest = ip
+                        closest_intersection = obs
+                        local_pos_of_closest = local_pos
+
+        # jeśli nic nie znaleziono
+        if closest_intersection is None:
+            return pygame.Vector2(0, 0)
+
+        # obliczamy lateral i braking force
+        multiplier = 1.0 + (detection_box_length - local_pos_of_closest.x) / detection_box_length
+        lateral_force = (closest_intersection.radius - local_pos_of_closest.y) * multiplier
+        braking_force = (closest_intersection.radius - local_pos_of_closest.x) * self.braking_weight
+
+        steering_local = pygame.Vector2(braking_force, lateral_force)
+        steering_world = local_to_world(steering_local, self.agent.heading, self.agent.side)
+        return steering_world

@@ -12,9 +12,7 @@ class Enemy:
         self.max_speed = max_speed
         self.max_force = max_force
         self.color = color
-        # losowy początkowy kierunek, żeby wander nie był identyczny
-        angle = random.uniform(0, math.tau)
-        self.velocity = pygame.Vector2(math.cos(angle), math.sin(angle)) * 10  # mała prędkość początkowa
+        self.velocity = pygame.Vector2(0, 0)
         self.heading = pygame.Vector2(1, 0)
         self.side = pygame.Vector2(-1, 0)  # prostopadły wektor
 
@@ -25,10 +23,12 @@ class Enemy:
         # resetujemy siłę sterującą
         self.steering_force = pygame.Vector2(0, 0)
 
+        # OBSTACLE AVOIDANCE
+        self.steering_force += self.steering.obstacle_avoidance(game_map.obstacles)
+
         # Steering behaviors
         if player is not None:
             # WANDER
-            self.steering.wander_target = pygame.Vector2(self.steering.wander_radius, 0).rotate(random.uniform(0, 360))
             self.steering_force += self.steering.wander(dt)
             # EVADE
             # self.steering_force += self.steering.evade(player)
