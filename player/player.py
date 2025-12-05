@@ -1,14 +1,16 @@
 import pygame
 import math
 from utils.geometry import ray_circle_intersection
+from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
 
 class Player:
     def __init__(self, x, y, speed=250, radius=20):
-        self.x = x
-        self.y = y
+        self.pos = pygame.Vector2(x, y)
+        self.velocity = pygame.Vector2(0, 0)
         self.speed = speed
         self.radius = radius  # collider
-        self.angle = 0        # rotacja
+        self.heading = pygame.Vector2(1, 0)
+        self.side = pygame.Vector2(-1, 0)
         self.shoot_cooldown = 0.5  # w sekundach
         self.time_since_last_shot = 0
         self.want_to_shoot = False
@@ -19,40 +21,40 @@ class Player:
 
     def handle_input(self, dt):
         keys = pygame.key.get_pressed()
-        dx, dy = 0, 0
+        move = pygame.Vector2(0, 0)
 
         if keys[pygame.K_w] or keys[pygame.K_UP]:
-            dy -= 1
+            move.y -= 1
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:
-            dy += 1
+            move.y += 1
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            dx -= 1
+            move.x -= 1
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            dx += 1
+            move.x += 1
 
         # normalizacja ruchu
-        if dx != 0 or dy != 0:
-            length = math.sqrt(dx*dx + dy*dy)
-            dx /= length
-            dy /= length
+        if move.length_squared() > 0:
+            move = move.normalize()
 
-        self.x += dx * self.speed * dt
-        self.y += dy * self.speed * dt
+        self.velocity = move * self.speed
+        self.pos += self.velocity * dt
 
     def update_angle(self):
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        self.angle = math.atan2(mouse_y - self.y, mouse_x - self.x)
+        mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
+        direction = mouse_pos - self.pos
+        if direction.length_squared() > 0:
+            self.heading = direction.normalize()
+            self.side = pygame.Vector2(-self.heading.y, self.heading.x)
 
     def update(self, dt, game_map, screen):
         self.handle_input(dt)
-        self.collide_with_walls(game_map.width, game_map.height)
-        self.collide_with_obstacles(game_map.obstacles)
+        self.collides_with_walls(game_map.width, game_map.height)
+        self.collides_with_obstacles(game_map.obstacles)
         self.update_angle()
         self.time_since_last_shot += dt
 
         # sprawdzamy przytrzymanie LPM
         mouse_pressed = pygame.mouse.get_pressed()[0]
-
         if mouse_pressed:
             self.want_to_shoot = True
 
@@ -65,50 +67,19 @@ class Player:
         if not mouse_pressed:
             self.want_to_shoot = False
 
-    def collide_with_walls(self, map_width, map_height):
-        # left wall
-        if self.x - self.radius < 0:
-            self.x = self.radius
-        # right wall
-        if self.x + self.radius > map_width:
-            self.x = map_width - self.radius
-        # top wall
-        if self.y - self.radius < 0:
-            self.y = self.radius
-        # bottom wall
-        if self.y + self.radius > map_height:
-            self.y = map_height - self.radius
+    def collides_with_walls(self, map_width, map_height):
+        collision_with_walls(self.pos, self.radius, map_width, map_height)
 
-    def collide_with_obstacles(self, obstacles):
+    def collides_with_obstacles(self, obstacles):
         for obs in obstacles:
-            dx = self.x - obs.x
-            dy = self.y - obs.y
-            dist = math.sqrt(dx * dx + dy * dy)
-            overlap = self.radius + obs.radius - dist
-
-            if overlap > 0:  # kolizja
-                if dist == 0:
-                    # edge case: środek idealnie się pokrywa to przesuwamy losowo
-                    dx, dy = 1, 0
-                    dist = 1
-
-                # normalizacja
-                nx = dx / dist
-                ny = dy / dist
-
-                # odpychanie gracza od przeszkody
-                self.x += nx * overlap
-                self.y += ny * overlap
+            if circle_collision(self.pos, self.radius, obs.pos, obs.radius):
+                resolve_circle_overlap(self.pos, self.radius, obs.pos, obs.radius)
 
     def shoot(self, obstacles, screen, enemies=None):
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
 
         # direction (normalize)
-        dx = mouse_x - self.x
-        dy = mouse_y - self.y
-        length = math.sqrt(dx * dx + dy * dy)
-        dx /= length
-        dy /= length
+        direction = (mouse_pos - self.pos).normalize()
 
         closest_t = None
         closest_hit = None  # przeszkoda, która zatrzyma promień
@@ -116,9 +87,9 @@ class Player:
         # intersection with every obstacle
         for obs in obstacles:
             t = ray_circle_intersection(
-                self.x, self.y,
-                dx, dy,
-                obs.x, obs.y, obs.radius
+                self.pos.x, self.pos.y,
+                direction.x, direction.y,
+                obs.pos.x, obs.pos.y, obs.radius
             )
             if t is not None:
                 if closest_t is None or t < closest_t:
@@ -128,7 +99,10 @@ class Player:
         # sprawdzamy kolizję z enemy
         if enemies is not None:
             for enemy in enemies[:]:  # kopiujemy listę, żeby można usuwać
-                t_enemy = ray_circle_intersection(self.x, self.y, dx, dy, enemy.x, enemy.y, enemy.radius)
+                t_enemy = ray_circle_intersection(
+                    self.pos.x, self.pos.y,
+                    direction.x, direction.y,
+                    enemy.pos.x, enemy.pos.y, enemy.radius)
                 if t_enemy is not None:
                     # jeśli enemy jest bliżej niż przeszkoda lub brak przeszkody
                     if closest_t is None or t_enemy < closest_t:
@@ -141,33 +115,27 @@ class Player:
 
         # koniec promienia do rysowania
         if closest_t is not None:
-            end_x = self.x + dx * closest_t
-            end_y = self.y + dy * closest_t
+            end_pos = self.pos + direction * closest_t
         else:
             far = 5000
-            end_x = self.x + dx * far
-            end_y = self.y + dy * far
+            end_pos = self.pos + direction * far
 
         # draw ray
-        pygame.draw.line(screen, (255, 0, 0), (self.x, self.y), (end_x, end_y), 2)
+        pygame.draw.line(screen, (255, 0, 0), self.pos, end_pos, 2)
 
     def draw(self, screen):
-
         # 3 wierzchołki trójkąta
-        tip = (
-            self.x + math.cos(self.angle) * self.radius,
-            self.y + math.sin(self.angle) * self.radius
-        )
+        tip = self.pos + self.heading * self.radius
 
-        left = (
-            self.x + math.cos(self.angle + 2.5) * self.radius,
-            self.y + math.sin(self.angle + 2.5) * self.radius
-        )
+        left = self.pos + pygame.Vector2(
+            math.cos(math.atan2(self.heading.y, self.heading.x) + 2.5),
+            math.sin(math.atan2(self.heading.y, self.heading.x) + 2.5)
+        ) * self.radius
 
-        right = (
-            self.x + math.cos(self.angle - 2.5) * self.radius,
-            self.y + math.sin(self.angle - 2.5) * self.radius
-        )
+        right = self.pos + pygame.Vector2(
+            math.cos(math.atan2(self.heading.y, self.heading.x) - 2.5),
+            math.sin(math.atan2(self.heading.y, self.heading.x) - 2.5)
+        ) * self.radius
 
         pygame.draw.polygon(
             screen,
@@ -175,4 +143,4 @@ class Player:
             [tip, left, right]
         )
 
-        pygame.draw.circle(screen, (255,0,0), (int(self.x),int(self.y)), self.radius, 1)
+        pygame.draw.circle(screen, (255, 0, 0), (int(self.pos.x), int(self.pos.y)), self.radius, 1)
