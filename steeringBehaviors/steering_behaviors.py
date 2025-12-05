@@ -32,6 +32,10 @@ class SteeringBehaviors:
         self.min_detection_box_length = 120.0  # minimalna długość boxa
         self.braking_weight = 0.1
 
+        # feelery do Wall Avoidance
+        self.feeler_length = 500  # długość feelerów
+        self.feelers = [pygame.Vector2(0, 0) for _ in range(3)]  # 3 feelery: przód, lewy, prawy
+
     def seek(self, target_pos):
         """Seek target position"""
         if target_pos is None:
@@ -182,3 +186,66 @@ class SteeringBehaviors:
         steering_local = pygame.Vector2(braking_force, lateral_force)
         steering_world = local_to_world(steering_local, self.agent.heading, self.agent.side)
         return steering_world
+
+    def create_feelers(self):
+        """Tworzy 3 feelery: środkowy, lewy i prawy"""
+        length = self.feeler_length
+        heading = self.agent.heading
+        side = self.agent.side
+        pos = self.agent.pos
+
+        # centralny feeler
+        self.feelers[0] = pos + heading * length
+        # lewy
+        self.feelers[1] = pos + (heading.rotate(30)) * length * 0.8
+        # prawy
+        self.feelers[2] = pos + (heading.rotate(-30)) * length * 0.8
+
+    def wall_avoidance(self, walls):
+        """
+        walls: lista obiektów Wall, które mają:
+            - from_pos (pygame.Vector2) początek
+            - to_pos (pygame.Vector2) koniec
+            - normal (pygame.Vector2) normalna
+        Zwraca wektor siły sterującej
+        """
+        self.create_feelers()
+        steering_force = pygame.Vector2(0, 0)
+        closest_dist = float('inf')
+        closest_wall = None
+        closest_point = None
+        feeler_index = 0
+
+        for i, feeler in enumerate(self.feelers):
+            for wall in walls:
+                # prosta funkcja przecięcia linii
+                intersect, point = self.line_intersection(self.agent.pos, feeler, wall.from_pos, wall.to_pos)
+                if intersect:
+                    dist = (point - self.agent.pos).length()
+                    if dist < closest_dist:
+                        closest_dist = dist
+                        closest_wall = wall
+                        closest_point = point
+                        feeler_index = i
+
+        if closest_wall:
+            overshoot = self.feelers[feeler_index] - closest_point
+            steering_force = closest_wall.normal * overshoot.length()
+
+        return steering_force
+
+    @staticmethod
+    def line_intersection(p1, p2, q1, q2):
+        r = p2 - p1
+        s = q2 - q1
+        denominator = r.cross(s)
+        if denominator == 0:
+            return False, None  # równoległe
+
+        t = (q1 - p1).cross(s) / denominator
+        u = (q1 - p1).cross(r) / denominator
+
+        if 0 <= t <= 1 and 0 <= u <= 1:
+            intersection_point = p1 + r * t
+            return True, intersection_point
+        return False, None

@@ -2,6 +2,7 @@ import random
 import pygame
 from enemy.enemy import Enemy
 from .circle_obstacle import CircleObstacle
+from .wall import Wall
 
 class GameMap:
     def __init__(self, width: int, height: int):
@@ -9,6 +10,21 @@ class GameMap:
         self.height = height
         self.obstacles: list[CircleObstacle] = []
         self.enemies: list[Enemy] = []
+        self.walls: list[Wall] = []
+
+    def generate_walls(self):
+        """Tworzy ściany przy krawędziach mapy"""
+        tl = pygame.Vector2(0, 0)
+        tr = pygame.Vector2(self.width, 0)
+        br = pygame.Vector2(self.width, self.height)
+        bl = pygame.Vector2(0, self.height)
+
+        self.walls = [
+            Wall(tl, tr),  # góra
+            Wall(tr, br),  # prawa
+            Wall(br, bl),  # dół
+            Wall(bl, tl)  # lewa
+        ]
 
     def generate_obstacles(
         self,
@@ -77,8 +93,10 @@ class GameMap:
             self.enemies.append(new_enemy)
 
     def draw(self, surface: pygame.Surface):
-        """Draw all obstacles and enemies"""
+        """Draw all obstacles, walls and enemies"""
         for obs in self.obstacles:
             pygame.draw.circle(surface, (120, 120, 120), obs.pos, obs.radius)
+        for wall in self.walls:
+            pygame.draw.line(surface, (200, 200, 200), wall.from_pos(), wall.to_pos(), 3)
         for enemy in self.enemies:
             enemy.draw(surface)

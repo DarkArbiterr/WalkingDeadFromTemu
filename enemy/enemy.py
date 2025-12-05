@@ -23,13 +23,10 @@ class Enemy:
         # resetujemy siłę sterującą
         self.steering_force = pygame.Vector2(0, 0)
 
-        # OBSTACLE AVOIDANCE
-        self.steering_force += self.steering.obstacle_avoidance(game_map.obstacles)
-
         # Steering behaviors
         if player is not None:
             # WANDER
-            self.steering_force += self.steering.wander(dt)
+            self.steering_force += self.steering.wander(dt) * 2
             # EVADE
             # self.steering_force += self.steering.evade(player)
 
@@ -50,11 +47,17 @@ class Enemy:
             #     # gracz daleko -> SEEK
             #     self.steering_force += self.steering.seek(player.pos)
 
+        # OBSTACLE AVOIDANCE
+        self.steering_force += self.steering.obstacle_avoidance(game_map.obstacles)
+
+        # WALL AVOIDANCE
+        self.steering_force += self.steering.wall_avoidance(game_map.walls)
+
         # limit prędkości
-        if self.steering_force.length_squared() > 0:
-            self.velocity += self.steering_force * dt
-            if self.velocity.length() > self.max_speed:
-                self.velocity.scale_to_length(self.max_speed)
+        # if self.steering_force.length_squared() > 0:
+        #     self.velocity += self.steering_force * dt
+        #     if self.velocity.length() > self.max_speed:
+        #         self.velocity.scale_to_length(self.max_speed)
 
         # przyspieszenie: F = ma
         acceleration = self.steering_force / self.mass
