@@ -26,18 +26,13 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                player.shoot(game_map.obstacles, WINDOW_WIDTH, WINDOW_HEIGHT, screen)
+            player.handle_shoot_event(event)
 
         # draw
         screen.fill((30, 30, 30))  # background
-        player.update(dt, game_map)
+        player.update(dt, game_map, screen)
         player.draw(screen)
         game_map.draw(screen)
-
-        if pygame.mouse.get_pressed()[0]:
-            player.shoot(game_map.obstacles, WINDOW_WIDTH, WINDOW_HEIGHT, screen)
-
         pygame.display.flip()
 
     pygame.quit()

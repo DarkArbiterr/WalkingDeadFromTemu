@@ -9,6 +9,13 @@ class Player:
         self.speed = speed
         self.radius = radius  # collider
         self.angle = 0        # rotation
+        self.shoot_cooldown = 0.5  # w sekundach
+        self.time_since_last_shot = 0
+        self.want_to_shoot = False
+
+    def handle_shoot_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self.want_to_shoot = True
 
     def handle_input(self, dt):
         keys = pygame.key.get_pressed()
@@ -36,11 +43,20 @@ class Player:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         self.angle = math.atan2(mouse_y - self.y, mouse_x - self.x)
 
-    def update(self, dt, game_map):
+    def update(self, dt, game_map, screen):
         self.handle_input(dt)
         self.collide_with_walls(game_map.width, game_map.height)
         self.collide_with_obstacles(game_map.obstacles)
         self.update_angle()
+        self.time_since_last_shot += dt
+
+        # jeśli gracz kliknął i cooldown minął to strzel
+        if self.want_to_shoot and self.time_since_last_shot >= self.shoot_cooldown:
+            self.shoot(game_map.obstacles, screen)
+            self.time_since_last_shot = 0
+
+        # reset kliknięcia
+        self.want_to_shoot = False
 
     def collide_with_walls(self, map_width, map_height):
         # left wall
@@ -77,7 +93,7 @@ class Player:
                 self.x += nx * overlap
                 self.y += ny * overlap
 
-    def shoot(self, obstacles, map_width, map_height, screen):
+    def shoot(self, obstacles, screen):
         mouse_x, mouse_y = pygame.mouse.get_pos()
 
         # direction (normalize)

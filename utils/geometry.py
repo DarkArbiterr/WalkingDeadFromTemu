@@ -15,15 +15,15 @@ def ray_circle_intersection(px, py, dx, dy, cx, cy, r):
     b = 2 * (fx*dx + fy*dy)
     c = (fx*fx + fy*fy) - r*r
 
-    discriminant = b*b - 4*a*c
-    if discriminant < 0:
+    disc  = b*b - 4*a*c
+    if disc  < 0:
         return None  # no intersection
 
-    discriminant = math.sqrt(discriminant)
+    disc  = math.sqrt(disc)
 
     # two solutions
-    t1 = (-b - discriminant) / (2*a)
-    t2 = (-b + discriminant) / (2*a)
+    t1 = (-b - disc ) / (2*a)
+    t2 = (-b + disc ) / (2*a)
 
     # first positive intersection
     t_candidates = [t for t in (t1, t2) if t > 0]
