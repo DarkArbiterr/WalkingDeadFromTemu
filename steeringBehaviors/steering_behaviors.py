@@ -1,8 +1,17 @@
+import random
 import pygame
 
 class SteeringBehaviors:
     def __init__(self, agent):
         self.agent = agent
+
+        # --- WANDER parameters ---
+        self.wander_radius = 30.0  # promień okręgu
+        self.wander_distance = 40.0  # odległość środka okręgu od agenta
+        self.wander_jitter = 80.0  # max losowe przesunięcie na sekundę
+
+        # pozycja początkowa celu na okręgu
+        self.wander_target = pygame.Vector2(self.wander_radius, 0)
 
     def seek(self, target_pos):
         """Seek target position"""
@@ -81,3 +90,31 @@ class SteeringBehaviors:
 
         # flee
         return self.flee(future_pos)
+
+    def wander(self, dt: float):
+        # losowy jitter dodany do celu na okręgu
+        jitter = self.wander_jitter * dt
+        self.wander_target += pygame.Vector2(
+            random.uniform(-1, 1) * jitter,
+            random.uniform(-1, 1) * jitter
+        )
+
+        # normalizacja + rzut z powrotem na okrąg
+        if self.wander_target.length_squared() > 0:
+            self.wander_target = self.wander_target.normalize() * self.wander_radius
+
+        # przesunięcie okręgu przed agenta
+        target_local = self.wander_target + pygame.Vector2(self.wander_distance, 0)
+
+        # transformacja do świata
+        heading = self.agent.velocity.normalize() if self.agent.velocity.length() > 0 else pygame.Vector2(1, 0)
+        side = pygame.Vector2(-heading.y, heading.x)
+
+        target_world = (
+                self.agent.pos +
+                heading * target_local.x +
+                side * target_local.y
+        )
+
+        # 5) Siła sterująca — SEEK do target_world
+        return (target_world - self.agent.pos).normalize() * self.agent.max_speed
