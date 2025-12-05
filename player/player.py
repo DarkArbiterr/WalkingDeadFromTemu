@@ -1,5 +1,6 @@
 import pygame
 import math
+from utils.geometry import ray_circle_intersection
 
 class Player:
     def __init__(self, x, y, speed=250, radius=20):
@@ -35,9 +36,81 @@ class Player:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         self.angle = math.atan2(mouse_y - self.y, mouse_x - self.x)
 
-    def update(self, dt):
+    def update(self, dt, game_map):
         self.handle_input(dt)
+        self.collide_with_walls(game_map.width, game_map.height)
+        self.collide_with_obstacles(game_map.obstacles)
         self.update_angle()
+
+    def collide_with_walls(self, map_width, map_height):
+        # left wall
+        if self.x - self.radius < 0:
+            self.x = self.radius
+        # right wall
+        if self.x + self.radius > map_width:
+            self.x = map_width - self.radius
+        # top wall
+        if self.y - self.radius < 0:
+            self.y = self.radius
+        # bottom wall
+        if self.y + self.radius > map_height:
+            self.y = map_height - self.radius
+
+    def collide_with_obstacles(self, obstacles):
+        for obs in obstacles:
+            dx = self.x - obs.x
+            dy = self.y - obs.y
+            dist = math.sqrt(dx * dx + dy * dy)
+            overlap = self.radius + obs.radius - dist
+
+            if overlap > 0:  # kolizja
+                if dist == 0:
+                    # edge case: środek idealnie się pokrywa → przesuwamy losowo
+                    dx, dy = 1, 0
+                    dist = 1
+
+                # normalizacja
+                nx = dx / dist
+                ny = dy / dist
+
+                # odpychanie gracza od przeszkody
+                self.x += nx * overlap
+                self.y += ny * overlap
+
+    def shoot(self, obstacles, map_width, map_height, screen):
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+
+        # direction (normalize)
+        dx = mouse_x - self.x
+        dy = mouse_y - self.y
+        length = math.sqrt(dx * dx + dy * dy)
+        dx /= length
+        dy /= length
+
+        closest_t = None
+
+        # intersection with every obstacle
+        for obs in obstacles:
+            t = ray_circle_intersection(
+                self.x, self.y,
+                dx, dy,
+                obs.x, obs.y, obs.radius
+            )
+            if t is not None:
+                if closest_t is None or t < closest_t:
+                    closest_t = t
+
+        # if hit an obstacle — end ray
+        if closest_t is not None:
+            end_x = self.x + dx * closest_t
+            end_y = self.y + dy * closest_t
+        else:
+            far = 5000
+            end_x = self.x + dx * far
+            end_y = self.y + dy * far
+
+        # draw ray
+        pygame.draw.line(screen, (255, 0, 0), (self.x, self.y), (end_x, end_y), 2)
 
     def draw(self, screen):
 
