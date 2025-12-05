@@ -21,6 +21,7 @@ class SteeringBehaviors:
     def flee(self, target_pos, panic_distance=None):
         """Flee from target position. Optional panic distance."""
         to_target = self.agent.pos - target_pos
+
         # jeśli jest panic_distance i cel jest dalej niż dystans paniki, nic nie rób
         if panic_distance is not None and to_target.length_squared() > panic_distance**2:
             return pygame.Vector2(0, 0)
@@ -45,3 +46,27 @@ class SteeringBehaviors:
             return desired_velocity - self.agent.velocity
 
         return pygame.Vector2(0, 0)
+
+    def pursuit(self, evader):
+        to_evader = evader.pos - self.agent.pos
+
+        # Dot product: czy evader jest przed agentem?
+        relative_heading = self.agent.heading.dot(evader.heading)
+
+        # Czy evader jest "przed nami" i niemal się nie obraca względem nas?
+        if to_evader.dot(self.agent.heading) > 0 and relative_heading < -0.95:
+            # seek do aktualnej pozycji
+            return self.seek(evader.pos)
+
+        # przewidujemy przyszłą pozycję:
+        distance = to_evader.length()
+        speed_sum = self.agent.max_speed + evader.velocity.length()
+
+        if speed_sum != 0:
+            look_ahead_time = distance / speed_sum
+        else:
+            look_ahead_time = 0
+
+        future_pos = evader.pos + evader.velocity * look_ahead_time
+
+        return self.seek(future_pos)

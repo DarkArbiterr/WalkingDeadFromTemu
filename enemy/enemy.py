@@ -25,8 +25,12 @@ class Enemy:
 
         # Steering behaviors
         if player is not None:
+
+            # PURSUIT
+            self.steering_force += self.steering.pursuit(player)
+
             # ARRIVE - deceleration: 'slow', 'normal', 'fast'
-            self.steering_force += self.steering.arrive(player.pos, deceleration='normal')
+            # self.steering_force += self.steering.arrive(player.pos, deceleration='normal')
 
             # SEEK I FLEE:
             # panic_distance = 200
