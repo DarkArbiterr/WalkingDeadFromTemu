@@ -20,6 +20,8 @@ class Enemy:
         self.steering = SteeringBehaviors(self)
         self.steering_force = pygame.Vector2(0, 0)  # do implementacji steering behavior
 
+        self.tagged = False
+
     def update(self, dt, game_map, player=None, all_enemies=None):
         # resetujemy siłę sterującą
         self.steering_force = pygame.Vector2(0, 0)
@@ -130,3 +132,24 @@ class Enemy:
                 resolve_circle_overlap(self.pos, self.radius, other.pos, other.radius)
                 collided = True
         return collided
+
+    def tag_neighbors(self, agents, radius):
+        """
+            Oznacza agentów w pobliżu jako sąsiadów.
+            :param self: agent, dla którego liczymy sąsiadów
+            :param agents: lista wszystkich agentów w świecie
+            :param radius: promień sąsiedztwa
+        """
+        for other in agents:
+            # odtaguj wszystkich najpierw
+            other.tagged = False
+
+        for other in agents:
+            if other is self:
+                continue
+
+            to = other.pos - self.pos
+            # promień sąsiedztwa uwzględnia bounding radius innego agenta
+            range_check = radius + other.radius
+            if to.length_squared() < range_check ** 2:
+                other.tagged = True
