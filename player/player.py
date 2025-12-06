@@ -4,7 +4,7 @@ from utils.geometry import ray_circle_intersection
 from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
 
 class Player:
-    def __init__(self, x, y, speed=250, radius=20):
+    def __init__(self, x, y, speed=250, radius=15):
         self.pos = pygame.Vector2(x, y)
         self.velocity = pygame.Vector2(0, 0)
         self.speed = speed

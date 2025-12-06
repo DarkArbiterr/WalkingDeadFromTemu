@@ -36,6 +36,9 @@ class SteeringBehaviors:
         self.feeler_length = 500  # długość feelerów
         self.feelers = [pygame.Vector2(0, 0) for _ in range(3)]  # 3 feelery: przód, lewy, prawy
 
+        # ustawienie dystansu od przeszkody
+        self.distance_from_boundary = 50.0
+
     def seek(self, target_pos):
         """Seek target position"""
         if target_pos is None:
@@ -69,7 +72,7 @@ class SteeringBehaviors:
         dist = to_target.length()
 
         if dist > 0:
-            deceleration_tweaker = 1.3
+            deceleration_tweaker = 0.3
             # prędkość wymagana, aby dojść do celu
             speed = dist / (decel * deceleration_tweaker)
             speed = min(speed, self.agent.max_speed)
@@ -233,6 +236,62 @@ class SteeringBehaviors:
             steering_force = closest_wall.normal * overshoot.length()
 
         return steering_force
+
+    def interpose(self, agent_a, agent_b):
+        """
+        Agent stara się znaleźć w połowie drogi między agent_a i agent_b,
+        przewidując ich przyszłą pozycję.
+        """
+        # midpoint aktualnych pozycji
+        midpoint = (agent_a.pos + agent_b.pos) / 2
+
+        # czas potrzebny naszemu agentowi, aby dotrzeć do midpointu
+        to_mid = midpoint - self.agent.pos
+        dist = to_mid.length()
+        max_speed = self.agent.max_speed
+        if max_speed > 0:
+            time_to_reach = dist / max_speed
+        else:
+            time_to_reach = 0
+
+        # przewidywanie przyszłych pozycji agentów
+        future_a_pos = agent_a.pos + agent_a.velocity * time_to_reach
+        future_b_pos = agent_b.pos + agent_b.velocity * time_to_reach
+
+        # midpoint przyszłych pozycji
+        future_midpoint = (future_a_pos + future_b_pos) / 2
+
+        # wektor sterujący przy użyciu Arrive (szybkie hamowanie)
+        return self.arrive(future_midpoint, deceleration='fast')
+
+    def get_hiding_position(self, obstacle_pos: pygame.Vector2, obstacle_radius: float,
+                            target_pos: pygame.Vector2) -> pygame.Vector2:
+        to_obstacle = (obstacle_pos - target_pos).normalize()
+        dist_away = obstacle_radius + self.distance_from_boundary
+        hiding_spot = obstacle_pos + to_obstacle * dist_away
+        return hiding_spot
+
+    def hide(self, target, obstacles: list):
+        """
+        Oblicza siłę sterującą, by ukryć się przed celem.
+        """
+        best_hiding_spot = None
+        dist_to_closest = float('inf')
+
+        for obs in obstacles:
+            hiding_spot = self.get_hiding_position(obs.pos, obs.radius, target.pos)
+            dist_sq = (hiding_spot - self.agent.pos).length_squared()
+            if dist_sq < dist_to_closest:
+                dist_to_closest = dist_sq
+                best_hiding_spot = hiding_spot
+
+        if best_hiding_spot is None:
+            # brak przeszkód – uciekaj od celu
+            return self.evade(target)
+
+        # idź do najlepszego punktu ukrycia
+        return self.arrive(best_hiding_spot, deceleration='fast')
+
 
     @staticmethod
     def line_intersection(p1, p2, q1, q2):

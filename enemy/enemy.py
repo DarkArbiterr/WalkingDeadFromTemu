@@ -5,7 +5,7 @@ from utils.collision import circle_collision, resolve_circle_overlap, collision_
 from steeringBehaviors.steering_behaviors import SteeringBehaviors
 
 class Enemy:
-    def __init__(self, x, y, radius=20, mass=1.0, max_speed=100, max_force=200, color=(200,50,50)):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=300, max_force=200, color=(200,50,50)):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
@@ -25,8 +25,10 @@ class Enemy:
 
         # Steering behaviors
         if player is not None:
+            # HIDE - agent stara się ukryć za przeszkodami przed graczem
+            self.steering_force += self.steering.hide(player, game_map.obstacles)
             # WANDER
-            self.steering_force += self.steering.wander(dt) * 2
+            # self.steering_force += self.steering.wander(dt)
             # EVADE
             # self.steering_force += self.steering.evade(player)
 
