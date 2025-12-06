@@ -1,9 +1,11 @@
 import pygame
 import random
+from .enemy_peek import EnemyPeek
 
 class EnemySteering:
     def __init__(self, enemy):
         self.enemy = enemy
+        self.peek = EnemyPeek(enemy)
 
         # wagi zachowań
         self.weights = {
@@ -29,6 +31,7 @@ class EnemySteering:
 
 
     def calculate_steering(self, dt, player=None, game_map=None):
+        self.peek.update(dt)
         steering_force = pygame.Vector2(0, 0)
 
         # lista zachowań w kolejności priorytetu
@@ -36,8 +39,12 @@ class EnemySteering:
                      "alignment", "cohesion", "wander"]
 
         for behavior in behaviors:
-            if random.random() <= self.probabilities[behavior]:
-                force = getattr(self, behavior)(dt, player, game_map) * self.weights[behavior]
+            if behavior == "hide" and self.peek.is_peeking():
+                continue
+            if random.random() <= self.probabilities.get(behavior, 1.0):
+                force = getattr(self, behavior)(dt, player, game_map) * self.weights.get(behavior, 1.0)
+                if self.peek.is_peeking() and behavior == "wander":
+                    force *= 1.8  # mocniejszy wander w peek
                 if force.length_squared() > 0:
                     # ogranicz do max_force
                     if force.length() > self.enemy.max_force:

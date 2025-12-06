@@ -410,15 +410,18 @@ class SteeringBehaviors:
             center_of_mass += neighbor.pos
         center_of_mass /= len(neighbors)
 
-        # Wektor kierunku do środka masy (seek)
-        desired_velocity = (center_of_mass - self.agent.pos).normalize() * self.agent.max_speed
-        steering_force = desired_velocity - self.agent.velocity
 
-        # ograniczamy siłę do max_force
-        if steering_force.length() > self.agent.max_force:
-            steering_force.scale_to_length(self.agent.max_force)
 
-        return steering_force
+        # Wektor kierunku do środka masy
+        to_center = center_of_mass - self.agent.pos
+        if to_center.length_squared() > 1e-6:  # zabezpieczenie przed zerowym wektorem
+            desired_velocity = to_center.normalize() * self.agent.max_speed
+            steering_force = desired_velocity - self.agent.velocity
+            if steering_force.length() > self.agent.max_force:
+                steering_force.scale_to_length(self.agent.max_force)
+            return steering_force
+        else:
+            return pygame.Vector2(0, 0)
 
 
     @staticmethod

@@ -9,7 +9,7 @@ from .enemy_steering import *
 
 
 class Enemy:
-    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=30000, color=(200,50,50), flocking_radius=100.0):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=2000, color=(200,50,50), flocking_radius=100.0):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
