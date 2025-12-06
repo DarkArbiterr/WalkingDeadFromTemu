@@ -99,4 +99,4 @@ class GameMap:
         for wall in self.walls:
             pygame.draw.line(surface, (200, 200, 200), wall.from_pos(), wall.to_pos(), 3)
         for enemy in self.enemies:
-            enemy.draw(surface)
+            enemy.draw(surface, self.enemies)

@@ -349,6 +349,78 @@ class SteeringBehaviors:
         # arrive do przewidywanej pozycji
         return self.arrive(future_pos, deceleration='fast')
 
+    def separation(self, neighbors):
+        """
+        Oblicza siłę separacji względem sąsiadów.c
+        """
+        if not neighbors:
+            return pygame.Vector2()
+
+        steering_force = pygame.Vector2(0, 0)
+
+        for other in neighbors:
+            to = self.agent.pos - other.pos
+            dist = to.length()
+
+            if dist > 0:
+                steering_force += to.normalize() / dist  # im bliżej, tym silniejsze odpychanie
+
+        return steering_force
+
+    def alignment(self):
+        """
+        Steering: ALIGNMENT
+        Zwraca wektor kierujący agenta tak, aby wyrównał kierunek
+        do średniego kierunku swoich sąsiadów.
+        """
+        neighbors = self.agent.neighbors
+
+        if not neighbors:
+            return pygame.Vector2(0, 0)
+
+        # sredni heading sąsiadów
+        avg_heading = pygame.Vector2(0, 0)
+        count = 0
+
+        for other in neighbors:
+            if other is self.agent:
+                continue
+            avg_heading += other.heading
+            count += 1
+
+        if count == 0:
+            return pygame.Vector2(0, 0)
+
+        avg_heading /= count
+
+        steering = avg_heading - self.agent.heading
+
+        return steering
+
+    def cohesion(self, neighbors):
+        """
+        Zwraca siłę steering przyciągającą agenta do środka masy jego sąsiadów.
+        """
+        if not neighbors:
+            return pygame.Vector2(0, 0)
+
+        # środek masy sąsiadów
+        center_of_mass = pygame.Vector2(0, 0)
+        for neighbor in neighbors:
+            center_of_mass += neighbor.pos
+        center_of_mass /= len(neighbors)
+
+        # Wektor kierunku do środka masy (seek)
+        desired_velocity = (center_of_mass - self.agent.pos).normalize() * self.agent.max_speed
+        steering_force = desired_velocity - self.agent.velocity
+
+        # ograniczamy siłę do max_force
+        if steering_force.length() > self.agent.max_force:
+            steering_force.scale_to_length(self.agent.max_force)
+
+        return steering_force
+
+
     @staticmethod
     def line_intersection(p1, p2, q1, q2):
         r = p2 - p1
