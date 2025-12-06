@@ -3,10 +3,12 @@ import math
 import pygame
 from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
 from steeringBehaviors.steering_behaviors import SteeringBehaviors
+from utils.debuging import *
+from .enemy_steering import *
 
 
 class Enemy:
-    def __init__(self, x, y, radius=15, mass=1.0, max_speed=300, max_force=100, color=(200,50,50)):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=8000, color=(200,50,50), flocking_radius=100.0):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
@@ -21,6 +23,7 @@ class Enemy:
         self.steering_force = pygame.Vector2(0, 0)  # do implementacji steering behavior
 
         self.neighbors = []
+        self.flocking_radius = flocking_radius
 
     def get_triangle_points(self):
         # Skala trójkąta
@@ -40,54 +43,9 @@ class Enemy:
         self.steering_force = pygame.Vector2(0, 0)
 
         # oznacz sąsiadów
-        self.find_neighbors(game_map.enemies, radius=100)
+        self.find_neighbors(game_map.enemies)
 
-        # --- Flocking ---
-        if self.neighbors:
-            # Separation
-            self.steering_force += self.steering.separation(self.neighbors) * 8000
-
-            # Alignment
-            self.steering_force += self.steering.alignment() * 200
-
-            # Cohesion
-            self.steering_force += self.steering.cohesion(self.neighbors) * 0.5
-
-        # Wander
-        self.steering_force += self.steering.wander(dt) * 1.2
-
-        if player is not None:
-            # HIDE - agent stara się ukryć za przeszkodami przed graczem
-            self.steering_force += self.steering.hide(player, game_map.obstacles) * 5
-            # EVADE
-            # self.steering_force += self.steering.evade(player)
-
-            # PURSUIT
-            # self.steering_force += self.steering.pursuit(player)
-
-            # ARRIVE - deceleration: 'slow', 'normal', 'fast'
-            # self.steering_force += self.steering.arrive(player.pos, deceleration='normal')
-
-            # SEEK I FLEE:
-            # panic_distance = 200
-            # to_player = player.pos - self.pos
-            #
-            # if to_player.length_squared() <= panic_distance ** 2:
-            #     # gracz jest blisko -> FLEE
-            #     self.steering_force += self.steering.flee(player.pos, panic_distance)
-            # else:
-            #     # gracz daleko -> SEEK
-            #     self.steering_force += self.steering.seek(player.pos)
-
-        # OBSTACLE AVOIDANCE
-        self.steering_force += self.steering.obstacle_avoidance(game_map.obstacles) * 10
-
-        # WALL AVOIDANCE
-        self.steering_force += self.steering.wall_avoidance(game_map.walls) * 10
-
-        # Ogranicz końcową siłę sterującą do max_force
-        if self.steering_force.length() > self.max_force:
-            self.steering_force.scale_to_length(self.max_force)
+        self.steering_force = calculate_steering(self, dt, player, game_map)
 
         # przyspieszenie: F = ma
         acceleration = self.steering_force / self.mass
@@ -129,9 +87,12 @@ class Enemy:
     def draw(self, screen, enemies):
         points = self.get_triangle_points()
         pygame.draw.polygon(screen, self.color, [(p.x, p.y) for p in points])
-        # rysuj sąsiadów na zielono
-        for other in self.neighbors:
-            pygame.draw.circle(screen, (0, 255, 0), other.pos, other.radius + 3, 2)
+
+        # debug: półprzezroczysta strefa
+        draw_neighbors_area(screen, self.pos, radius=100, color=(80, 80, 200), alpha=10)
+
+        # debug: obwódki sąsiadów
+        draw_neighbors_outline(screen, self.neighbors, outline_color=(0, 255, 0))
 
     def collides_with_obstacles(self, obstacles):
         collided = False
@@ -141,7 +102,6 @@ class Enemy:
                 collided = True
         return collided
 
-    # kolizja z graczem
     def collides_with_player(self, player):
         if circle_collision(self.pos, self.radius, player.pos, player.radius):
             # odpychanie gracza (jak przy przeszkodach)
@@ -162,7 +122,7 @@ class Enemy:
                 collided = True
         return collided
 
-    def find_neighbors(self, agents, radius):
+    def find_neighbors(self, agents):
         """Zbiera listę sąsiadów tylko dla tego agenta."""
         self.neighbors = []
 
@@ -171,7 +131,7 @@ class Enemy:
                 continue
 
             to = other.pos - self.pos
-            range_check = radius + other.radius
+            range_check = self.flocking_radius + other.radius
 
             if to.length_squared() < range_check ** 2:
                 self.neighbors.append(other)
