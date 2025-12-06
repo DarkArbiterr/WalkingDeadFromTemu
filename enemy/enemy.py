@@ -8,7 +8,7 @@ from .enemy_steering import *
 
 
 class Enemy:
-    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=8000, color=(200,50,50), flocking_radius=100.0):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=10000, color=(200,50,50), flocking_radius=100.0):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
@@ -20,6 +20,7 @@ class Enemy:
         self.side = pygame.Vector2(-1, 0)  # prostopadły wektor
 
         self.steering = SteeringBehaviors(self)
+        self.enemy_steering = EnemySteering(self)
         self.steering_force = pygame.Vector2(0, 0)  # do implementacji steering behavior
 
         self.neighbors = []
@@ -45,7 +46,7 @@ class Enemy:
         # oznacz sąsiadów
         self.find_neighbors(game_map.enemies)
 
-        self.steering_force = calculate_steering(self, dt, player, game_map)
+        self.steering_force = self.enemy_steering.calculate_steering(dt, player, game_map)
 
         # przyspieszenie: F = ma
         acceleration = self.steering_force / self.mass
