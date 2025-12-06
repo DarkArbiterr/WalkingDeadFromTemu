@@ -9,7 +9,7 @@ class EnemySteering:
         self.weights = {
             "wall_avoidance": 10,
             "obstacle_avoidance": 10,
-            "separation": 22000,
+            "separation": 32000,
             "alignment": 200,
             "cohesion": 0.03,
             "wander": 3.5,
@@ -22,7 +22,7 @@ class EnemySteering:
             "obstacle_avoidance": 0.9,
             "separation": 0.9,
             "alignment": 0.5,
-            "cohesion": 0.2,
+            "cohesion": 0.1,
             "wander": 0.8,
             "hide": 0.9
         }

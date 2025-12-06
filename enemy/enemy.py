@@ -3,12 +3,13 @@ import math
 import pygame
 from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
 from steeringBehaviors.steering_behaviors import SteeringBehaviors
+from utils.smoothing import Smoother
 from utils.debuging import *
 from .enemy_steering import *
 
 
 class Enemy:
-    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=10000, color=(200,50,50), flocking_radius=100.0):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=30000, color=(200,50,50), flocking_radius=100.0):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
@@ -26,26 +27,32 @@ class Enemy:
         self.neighbors = []
         self.flocking_radius = flocking_radius
 
+        self.smoother = Smoother(num_samples=10)
+        self.smoothed_heading = self.heading.copy()
+
     def get_triangle_points(self):
         # Skala trójkąta
         size = self.radius
 
         # Przód trójkąta — w kierunku heading
-        tip = self.pos + self.heading * size
+        tip = self.pos + self.smoothed_heading * size
+
+        side = pygame.Vector2(-self.smoothed_heading.y, self.smoothed_heading.x)
 
         # Boki trójkąta
-        left = self.pos - self.heading * (size * 0.5) + self.side * (size * 0.6)
-        right = self.pos - self.heading * (size * 0.5) - self.side * (size * 0.6)
+        left = self.pos - self.smoothed_heading * (size * 0.5) + side * (size * 0.6)
+        right = self.pos - self.smoothed_heading * (size * 0.5) - side * (size * 0.6)
 
         return [tip, left, right]
 
-    def update(self, dt, game_map, player=None, all_enemies=None):
+    def update(self, dt, game_map, player=None):
         # resetujemy siłę sterującą
         self.steering_force = pygame.Vector2(0, 0)
 
         # oznacz sąsiadów
         self.find_neighbors(game_map.enemies)
 
+        # sterring
         self.steering_force = self.enemy_steering.calculate_steering(dt, player, game_map)
 
         # przyspieszenie: F = ma
@@ -66,24 +73,21 @@ class Enemy:
             self.heading = self.velocity.normalize()
             self.side = pygame.Vector2(-self.heading.y, self.heading.x)
 
+        # smoothing
+        self.smoothed_heading = self.smoother.update(self.heading)
+
         # Kolizje: przeszkody
         self.collides_with_obstacles(game_map.obstacles)
-
-        # iteracyjne odpychanie enemies, 3-5 iteracji stabilizuje układ
-        # for _ in range(4):
-        #     for other in game_map.enemies:
-        #         if other is self:
-        #             continue
-        #         if circle_collision(self.pos, self.radius, other.pos, other.radius):
-        #             resolve_circle_overlap(self.pos, self.radius, other.pos, other.radius)
-        #     # po każdej iteracji upewniamy się, że nie wpadliśmy w przeszkodę
-        #     self.collides_with_obstacles(game_map.obstacles)
 
         # Kolizje: gracz i ściany
         if player:
             self.collides_with_player(player)
 
         self.collides_with_walls(game_map.width, game_map.height)
+
+        # Non-Penetration Constraint dla wrogów
+        if game_map.enemies is not None:
+            self.enforce_non_penetration(game_map.enemies)
 
     def draw(self, screen, enemies):
         points = self.get_triangle_points()
@@ -113,15 +117,14 @@ class Enemy:
     def collides_with_walls(self, map_width, map_height):
         collision_with_walls(self.pos, self.radius, map_width, map_height)
 
-    def collides_with_enemies(self, enemies):
-        collided = False
-        for other in enemies:
-            if other is self:
-                continue  # nie sprawdzaj samego siebie
-            if circle_collision(self.pos, self.radius, other.pos, other.radius):
-                resolve_circle_overlap(self.pos, self.radius, other.pos, other.radius)
-                collided = True
-        return collided
+    def enforce_non_penetration(self, agents):
+        """Wymusza brak nakładania się jednostek."""
+        for i, entity in enumerate(agents):
+            for j, other in enumerate(agents):
+                if i == j:
+                    continue
+                if circle_collision(entity.pos, entity.radius, other.pos, other.radius):
+                    resolve_circle_overlap(entity.pos, entity.radius, other.pos, other.radius)
 
     def find_neighbors(self, agents):
         """Zbiera listę sąsiadów tylko dla tego agenta."""
