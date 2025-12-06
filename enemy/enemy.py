@@ -4,6 +4,7 @@ import pygame
 from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
 from steeringBehaviors.steering_behaviors import SteeringBehaviors
 
+
 class Enemy:
     def __init__(self, x, y, radius=15, mass=1.0, max_speed=300, max_force=200, color=(200,50,50)):
         self.pos = pygame.Vector2(x, y)

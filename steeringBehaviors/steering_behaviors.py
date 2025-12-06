@@ -39,6 +39,12 @@ class SteeringBehaviors:
         # ustawienie dystansu od przeszkody
         self.distance_from_boundary = 50.0
 
+        # lista waypointów - PATH FOLLOW
+        self.path = None
+        self.current_waypoint_index = 0
+        self.waypoint_seek_radius = 50  # promień w pikselach
+        self.waypoint_seek_radius_sq = self.waypoint_seek_radius ** 2
+
     def seek(self, target_pos):
         """Seek target position"""
         if target_pos is None:
@@ -291,6 +297,35 @@ class SteeringBehaviors:
 
         # idź do najlepszego punktu ukrycia
         return self.arrive(best_hiding_spot, deceleration='fast')
+
+    def follow_path(self):
+        if not self.path or len(self.path) == 0:
+            return pygame.Vector2(0, 0)
+
+        # aktualny waypoint
+        target = self.path[self.current_waypoint_index]
+
+        # distance squared do waypointu
+        dist_sq = (target - self.agent.pos).length_squared()
+
+        # jeśli blisko waypointu, do następnego
+        if dist_sq < self.waypoint_seek_radius_sq:
+            self.current_waypoint_index += 1
+            if self.current_waypoint_index >= len(self.path):
+                # jeśli trasa jest zamknięta, wróć do początku
+                if getattr(self.path, "closed", False):
+                    self.current_waypoint_index = 0
+                else:
+                    self.current_waypoint_index = len(self.path) - 1  # ostatni punkt
+
+            target = self.path[self.current_waypoint_index]
+
+        # jeśli jesteśmy w ostatnim punkcie trasy otwartej - arrive
+        if self.current_waypoint_index == len(self.path) - 1 and not getattr(self.path, "closed", False):
+            return self.arrive(target, deceleration='normal')
+        else:
+            # w przeciwnym razie - seek
+            return self.seek(target)
 
 
     @staticmethod
