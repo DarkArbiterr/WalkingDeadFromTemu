@@ -327,6 +327,27 @@ class SteeringBehaviors:
             # w przeciwnym razie - seek
             return self.seek(target)
 
+    def offset_pursuit(self, leader, offset: pygame.Vector2):
+        """
+            Utrzymuje agenta w określonym przesunięciu względem lidera.
+            :param leader: agent do podążania
+            :param offset: Pozycja przesunięcia w przestrzeni lokalnej lidera (pygame.Vector2)
+            :return: Steering force (pygame.Vector2)
+        """
+        # offset w przestrzeni świata
+        world_offset_pos = leader.pos + leader.heading * offset.x + leader.side * offset.y
+
+        # wektor do offsetu
+        to_offset = world_offset_pos - self.agent.pos
+
+        # przewidywanie pozycji
+        look_ahead_time = to_offset.length() / (self.agent.max_speed + leader.velocity.length())
+
+        # przewidywana przyszła pozycja offsetu
+        future_pos = world_offset_pos + leader.velocity * look_ahead_time
+
+        # arrive do przewidywanej pozycji
+        return self.arrive(future_pos, deceleration='fast')
 
     @staticmethod
     def line_intersection(p1, p2, q1, q2):
