@@ -7,7 +7,7 @@ class HealthUI:
         # rozmiar serca
         self.size = 32
 
-        # TODO: podmianka na png
+        # potem podmianka na png
         self.heart_full = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
         self.heart_empty = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
 

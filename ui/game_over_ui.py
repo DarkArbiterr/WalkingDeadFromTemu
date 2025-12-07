@@ -4,17 +4,35 @@ class GameOverUI:
     def __init__(self, width, height):
         self.width = width
         self.height = height
+        self.font_big = pygame.font.SysFont("Arial", 70, bold=True)
+        self.font_btn = pygame.font.SysFont("Arial", 40, bold=True)
 
-        self.overlay = pygame.Surface((width, height))
-        self.overlay.set_alpha(150)
-        self.overlay.fill((0, 0, 0))
-
-        self.font = pygame.font.SysFont("arial", 72, bold=True)
+        self.button_rect = pygame.Rect(
+            width // 2 - 120,
+            height // 2 + 40,
+            240,
+            70
+        )
 
     def draw(self, screen):
-        screen.blit(self.overlay, (0, 0))
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        screen.blit(overlay, (0, 0))
 
-        text_surface = self.font.render("GAME OVER", True, (255, 50, 50))
-        rect = text_surface.get_rect(center=(self.width // 2, self.height // 2))
+        text = self.font_big.render("GAME OVER", True, (255, 60, 60))
+        screen.blit(text, (self.width // 2 - text.get_width() // 2, self.height // 2 - 100))
 
-        screen.blit(text_surface, rect)
+        pygame.draw.rect(screen, (200, 200, 200), self.button_rect, border_radius=10)
+        pygame.draw.rect(screen, (60, 60, 60), self.button_rect, 4, border_radius=10)
+
+        label = self.font_btn.render("Restart", True, (0, 0, 0))
+        screen.blit(label, (
+            self.button_rect.x + self.button_rect.width // 2 - label.get_width() // 2,
+            self.button_rect.y + self.button_rect.height // 2 - label.get_height() // 2
+        ))
+
+    def is_restart_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.button_rect.collidepoint(event.pos):
+                return True
+        return False

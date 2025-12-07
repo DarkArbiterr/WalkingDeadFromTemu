@@ -14,6 +14,7 @@ def main():
     clock = pygame.time.Clock()
 
     player = Player(30, 30)
+    player_dead = False
     health_ui = HealthUI(player.hp)
     game_over_ui = GameOverUI(WINDOW_WIDTH, WINDOW_HEIGHT)
 
@@ -35,32 +36,42 @@ def main():
     )
 
     running = True
+    player_dead = False
+    game_over_ui = GameOverUI(WINDOW_WIDTH, WINDOW_HEIGHT)
+
     while running:
         dt = clock.tick(FPS) / 1000  # seconds
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if player:
-                player.handle_shoot_event(event)
+            if not player_dead:
+                if player:
+                    player.handle_shoot_event(event)
+            else:
+                # GAME OVER
+                if game_over_ui.is_restart_clicked(event):
+                    return main()
 
         # draw
         screen.fill((30, 30, 30))  # background
 
-        if player:
-            player.update(dt, game_map, screen)
-            if player.hp <= 0:
-                player = None
+        if not player_dead:
+            if player:
+                player.update(dt, game_map, screen)
+                if player.hp <= 0:
+                    player_dead = True
+                    player = None
 
-        if player:
-            for enemy in game_map.enemies:
-                enemy.update(dt, game_map, player)
+            if player:
+                for enemy in game_map.enemies:
+                    enemy.update(dt, game_map, player)
 
         if player:
             player.draw(screen)
 
         game_map.draw(screen)
-        if player:
+        if not player_dead:
             health_ui.draw(screen, player.hp)
         else:
             game_over_ui.draw(screen)
