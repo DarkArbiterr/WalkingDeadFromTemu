@@ -6,7 +6,7 @@ class EnemyPeek:
     """
     Obsługuje logikę krótkiego wychodzenia zza przeszkód (peek) dla Enemy.
     """
-    def __init__(self, enemy, base_chance = 0.12, group_scale = 0.9, min_duration = 1.0,
+    def __init__(self, enemy, base_chance = 0.19, group_scale = 0.9, min_duration = 1.0,
                  max_duration = 3.0, check_interval = 0.25):
         self.enemy = enemy
 
@@ -63,6 +63,7 @@ class EnemyPeek:
             self._start_peek()
 
     def _start_peek(self):
+        self.enemy.is_peeking = True
         self.peeking = True
         self.peek_timer = 0.0
         self.peek_duration = random.uniform(self.min_duration, self.max_duration)
@@ -74,6 +75,7 @@ class EnemyPeek:
             pass
 
     def _end_peek(self):
+        self.enemy.is_peeking = False
         self.peeking = False
         self.peek_timer = 0.0
         self.peek_duration = 0.0

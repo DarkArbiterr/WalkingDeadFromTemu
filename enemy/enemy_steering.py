@@ -11,7 +11,7 @@ class EnemySteering:
             "wall_avoidance": 10,
             "obstacle_avoidance": 10,
             "separation": 22000,
-            "alignment": 400,
+            "alignment": 100,
             "cohesion": 0.03,
             "wander": 3.5,
             "hide": 12

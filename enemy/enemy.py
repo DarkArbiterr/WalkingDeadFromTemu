@@ -33,7 +33,7 @@ class Enemy:
         self.smoothed_heading = self.heading.copy()
 
         self.peek = EnemyPeek(self, base_chance=0.12, group_scale=0.6, min_duration=1.0, max_duration=3.0)
-
+        self.is_peeking = False
         # grupowanie/ataki
         self.state = "explore"  # możliwe: "explore" | "attack" | "dead"
         self.attack_group_id = None
@@ -109,6 +109,8 @@ class Enemy:
                 color_to_draw = (237, 63, 19)  # lider
             else:
                 color_to_draw = (245, 124, 17)  # followers
+        elif self.is_peeking:
+            color_to_draw = (242, 167, 202)
         else:
             color_to_draw = self.color  # normalny kolor
 
