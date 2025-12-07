@@ -19,12 +19,12 @@ class GameOverUI:
         overlay.fill((0, 0, 0, 160))
         screen.blit(overlay, (0, 0))
 
-        text = self.font_big.render("GAME OVER", True, (255, 60, 60))
+        text = self.font_big.render("GAME OVER", True, (222, 55, 92))
         screen.blit(text, (self.width // 2 - text.get_width() // 2, self.height // 2 - 100))
 
-        pygame.draw.rect(screen, (200, 200, 200), self.button_rect, border_radius=10)
+        pygame.draw.rect(screen, (50, 125, 217), self.button_rect, border_radius=5)
 
-        label = self.font_btn.render("RESTART", True, (0, 0, 0))
+        label = self.font_btn.render("RESTART", True, (218, 222, 227))
         screen.blit(label, (
             self.button_rect.x + self.button_rect.width // 2 - label.get_width() // 2,
             self.button_rect.y + self.button_rect.height // 2 - label.get_height() // 2

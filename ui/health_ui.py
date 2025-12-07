@@ -16,7 +16,7 @@ class HealthUI:
 
     # to potem wywalic i dac png
     def _draw_full_heart(self):
-        pygame.draw.polygon(self.heart_full, (255, 50, 50), [
+        pygame.draw.polygon(self.heart_full, (227, 27, 71), [
             (16, 4), (28, 12), (28, 22), (16, 30), (4, 22), (4, 12)
         ])
 
