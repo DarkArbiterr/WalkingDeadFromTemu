@@ -36,7 +36,7 @@ class GameMap:
         safe_zone_center: pygame.Vector2 = None,
         safe_zone_size = 0,
         min_distance_between_obstacles: int = 70,
-        min_distance_from_walls: int = 50
+        min_distance_from_walls: int = 100
 
     ):
         attempts = 0

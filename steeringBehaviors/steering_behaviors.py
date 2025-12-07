@@ -199,16 +199,22 @@ class SteeringBehaviors:
     def create_feelers(self):
         """Tworzy 3 feelery: środkowy, lewy i prawy"""
         length = self.feeler_length
+
         heading = self.agent.heading
-        side = self.agent.side
-        pos = self.agent.pos
+        if heading.length_squared() == 0:
+            heading = pygame.Vector2(1, 0)
+        else:
+            heading = heading.normalize()
+
+        left_dir = heading.rotate(30).normalize()
+        right_dir = heading.rotate(-30).normalize()
 
         # centralny feeler
-        self.feelers[0] = pos + heading * length
+        self.feelers[0] = self.agent.pos + heading * length
         # lewy
-        self.feelers[1] = pos + (heading.rotate(30)) * length * 0.8
+        self.feelers[1] = self.agent.pos + left_dir * length * 0.8
         # prawy
-        self.feelers[2] = pos + (heading.rotate(-30)) * length * 0.8
+        self.feelers[2] = self.agent.pos + right_dir * length * 0.8
 
     def wall_avoidance(self, walls):
         """
