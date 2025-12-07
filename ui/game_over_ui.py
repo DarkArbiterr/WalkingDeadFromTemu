@@ -5,7 +5,7 @@ class GameOverUI:
         self.width = width
         self.height = height
         self.font_big = pygame.font.SysFont("Arial", 70, bold=True)
-        self.font_btn = pygame.font.SysFont("Arial", 40, bold=True)
+        self.font_btn = pygame.font.SysFont("Arial", 20, bold=True)
 
         self.button_rect = pygame.Rect(
             width // 2 - 120,
@@ -23,9 +23,8 @@ class GameOverUI:
         screen.blit(text, (self.width // 2 - text.get_width() // 2, self.height // 2 - 100))
 
         pygame.draw.rect(screen, (200, 200, 200), self.button_rect, border_radius=10)
-        pygame.draw.rect(screen, (60, 60, 60), self.button_rect, 4, border_radius=10)
 
-        label = self.font_btn.render("Restart", True, (0, 0, 0))
+        label = self.font_btn.render("RESTART", True, (0, 0, 0))
         screen.blit(label, (
             self.button_rect.x + self.button_rect.width // 2 - label.get_width() // 2,
             self.button_rect.y + self.button_rect.height // 2 - label.get_height() // 2

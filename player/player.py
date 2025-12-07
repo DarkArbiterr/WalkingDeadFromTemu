@@ -5,7 +5,7 @@ from utils.collision import circle_collision, resolve_circle_overlap, collision_
 from config import *
 
 class Player:
-    def __init__(self, x, y, speed=150, radius=15):
+    def __init__(self, x, y, speed=130, radius=15):
         self.pos = pygame.Vector2(x, y)
         self.velocity = pygame.Vector2(0, 0)
         self.speed = speed
