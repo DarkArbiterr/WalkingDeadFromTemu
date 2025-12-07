@@ -12,6 +12,7 @@ class GameMap:
         self.enemies: list[Enemy] = []
         self.walls: list[Wall] = []
 
+
     def generate_walls(self):
         """Tworzy ściany przy krawędziach mapy"""
         tl = pygame.Vector2(0, 0)
@@ -33,7 +34,10 @@ class GameMap:
         max_radius: int = 60,
         max_attempts: int = 2000,
         safe_zone_center: pygame.Vector2 = None,
-        safe_zone_size = 0
+        safe_zone_size = 0,
+        min_distance_between_obstacles: int = 40,
+        min_distance_from_walls: int = 30
+
     ):
         attempts = 0
 
@@ -42,8 +46,8 @@ class GameMap:
 
             radius = random.randint(min_radius, max_radius)
 
-            x = random.randint(radius, self.width - radius)
-            y = random.randint(radius, self.height - radius)
+            x = random.randint(radius + min_distance_from_walls, self.width - radius - min_distance_from_walls)
+            y = random.randint(radius + min_distance_from_walls, self.height - radius - min_distance_from_walls)
             pos = pygame.Vector2(x, y)
 
             # sprawdzenie safe zone
@@ -54,6 +58,15 @@ class GameMap:
                     continue  # kolizja ze strefą startową - generuj nowy
 
             new_circle = CircleObstacle(x, y, radius)
+
+            # minimalna odległość od innych przeszkód
+            too_close = False
+            for o in self.obstacles:
+                if (new_circle.pos - o.pos).length() < radius + o.radius + min_distance_between_obstacles:
+                    too_close = True
+                    break
+            if too_close:
+                continue
 
             if any(new_circle.collides_with(o) for o in self.obstacles):
                 continue

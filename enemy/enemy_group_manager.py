@@ -23,7 +23,7 @@ class EnemyGroupManager:
         # timestamp startu cooldownu
         self.cooldown_start_time = None
 
-    def find_full_group(self):
+    def find_full_group(self, include_attack=False):
         """
         Zwraca pełną grupę używając BFS.
         """
@@ -35,9 +35,13 @@ class EnemyGroupManager:
         while queue:
             current = queue.popleft()
             for nb in current.neighbors:
-                if nb not in visited and nb.state == "explore":
-                    visited.add(nb)
-                    queue.append(nb)
+                if nb not in visited:
+                    if nb.state == "explore":
+                        visited.add(nb)
+                        queue.append(nb)
+                    elif include_attack and nb.state == "attack" and nb.attack_group_id == self.enemy.attack_group_id:
+                        visited.add(nb)
+                        queue.append(nb)
 
         return list(visited)
 
@@ -69,8 +73,8 @@ class EnemyGroupManager:
 
         """
         if self.enemy.state == "attack" :
-            if self.group_leader is not None and self.group_leader.state == "dead":
-                alive_attackers = [e for e in self.find_full_group() if e.state == "attack"]
+            if self.group_leader is None or self.group_leader.state == "dead":
+                alive_attackers = [e for e in self.find_full_group(include_attack=True) if e.state == "attack"]
                 if alive_attackers:
                     self.pick_new_leader(alive_attackers)
             return

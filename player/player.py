@@ -141,9 +141,9 @@ class Player:
 
         pygame.draw.polygon(
             screen,
-            (200, 200, 50),
+            (40, 138, 250),
             [tip, left, right]
         )
 
-        pygame.draw.circle(screen, (255, 0, 0), (int(self.pos.x), int(self.pos.y)), self.radius, 1)
+        # pygame.draw.circle(screen, (255, 0, 0), (int(self.pos.x), int(self.pos.y)), self.radius, 1)
 

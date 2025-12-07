@@ -11,7 +11,7 @@ from config import *
 
 
 class Enemy:
-    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=2000, color=(200,50,50), flocking_radius=70.0):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=2000, color=(196, 39, 113), flocking_radius=70.0):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
@@ -103,7 +103,15 @@ class Enemy:
             self.enforce_non_penetration(game_map.enemies)
 
     def draw(self, screen, enemies):
-        color_to_draw = (0, 255, 0) if self.state == "attack" else self.color
+        # wybór koloru w zależności od stanu
+        if self.state == "attack":
+            if self.is_group_leader:
+                color_to_draw = (237, 63, 19)  # lider
+            else:
+                color_to_draw = (245, 124, 17)  # followers
+        else:
+            color_to_draw = self.color  # normalny kolor
+
         points = self.get_triangle_points()
         pygame.draw.polygon(screen, color_to_draw, [(p.x, p.y) for p in points])
 
@@ -111,7 +119,7 @@ class Enemy:
         draw_neighbors_area(screen, self.pos, radius=self.flocking_radius, color=(80, 80, 200), alpha=10)
 
         # debug: obwódki sąsiadów
-        draw_neighbors_outline(screen, self.neighbors, outline_color=(0, 255, 0))
+        # draw_neighbors_outline(screen, self.neighbors, outline_color=(0, 255, 0))
 
     def collides_with_obstacles(self, obstacles):
         collided = False
