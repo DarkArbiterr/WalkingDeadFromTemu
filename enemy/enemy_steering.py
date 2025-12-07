@@ -10,10 +10,10 @@ class EnemySteering:
         self.explore_weights = {
             "wall_avoidance": 10,
             "obstacle_avoidance": 10,
-            "separation": 22000,
+            "separation": 25000,
             "alignment": 100,
             "cohesion": 0.03,
-            "wander": 3.5,
+            "wander": 3.7,
             "hide": 12
         }
 
