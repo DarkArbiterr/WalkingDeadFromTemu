@@ -4,7 +4,7 @@ from utils.geometry import ray_circle_intersection
 from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
 
 class Player:
-    def __init__(self, x, y, speed=250, radius=15):
+    def __init__(self, x, y, speed=150, radius=15):
         self.pos = pygame.Vector2(x, y)
         self.velocity = pygame.Vector2(0, 0)
         self.speed = speed
@@ -84,7 +84,7 @@ class Player:
         closest_t = None
         closest_hit = None  # przeszkoda, która zatrzyma promień
 
-        # intersection with every obstacle
+        # kolizje z obstacles
         for obs in obstacles:
             t = ray_circle_intersection(
                 self.pos.x, self.pos.y,
@@ -96,7 +96,7 @@ class Player:
                     closest_t = t
                     closest_hit = obs
 
-        # sprawdzamy kolizję z enemy
+        # kolizje z enemy
         if enemies is not None:
             for enemy in enemies[:]:  # kopiujemy listę, żeby można usuwać
                 t_enemy = ray_circle_intersection(
@@ -110,7 +110,9 @@ class Player:
                         closest_hit = enemy
 
         # jeśli trafiono w enemy - usuwamy
-        if isinstance(closest_hit, type(enemies[0])):  # jest enemy
+        if isinstance(closest_hit, type(enemies[0])):
+            closest_hit.state = "dead"
+            closest_hit.is_group_leader = False
             enemies.remove(closest_hit)
 
         # koniec promienia do rysowania
@@ -144,3 +146,4 @@ class Player:
         )
 
         pygame.draw.circle(screen, (255, 0, 0), (int(self.pos.x), int(self.pos.y)), self.radius, 1)
+

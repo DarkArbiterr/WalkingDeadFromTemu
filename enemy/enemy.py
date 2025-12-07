@@ -6,10 +6,12 @@ from steeringBehaviors.steering_behaviors import SteeringBehaviors
 from utils.smoothing import Smoother
 from utils.debuging import *
 from .enemy_steering import *
+from .enemy_group_manager import *
+from config import *
 
 
 class Enemy:
-    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=2000, color=(200,50,50), flocking_radius=100.0):
+    def __init__(self, x, y, radius=15, mass=1.0, max_speed=150, max_force=2000, color=(200,50,50), flocking_radius=70.0):
         self.pos = pygame.Vector2(x, y)
         self.radius = radius
         self.mass = mass
@@ -29,6 +31,14 @@ class Enemy:
 
         self.smoother = Smoother(num_samples=10)
         self.smoothed_heading = self.heading.copy()
+
+        self.peek = EnemyPeek(self, base_chance=0.12, group_scale=0.6, min_duration=1.0, max_duration=3.0)
+
+        # grupowanie/ataki
+        self.state = "explore"  # możliwe: "explore" | "attack" | "dead"
+        self.attack_group_id = None
+        self.group = EnemyGroupManager(self, ATTACK_THRESHOLD)
+        self.is_group_leader = False
 
     def get_triangle_points(self):
         # Skala trójkąta
@@ -51,6 +61,9 @@ class Enemy:
 
         # oznacz sąsiadów
         self.find_neighbors(game_map.enemies)
+
+        # update stanu grupy
+        self.group.update()
 
         # sterring
         self.steering_force = self.enemy_steering.calculate_steering(dt, player, game_map)
@@ -90,11 +103,12 @@ class Enemy:
             self.enforce_non_penetration(game_map.enemies)
 
     def draw(self, screen, enemies):
+        color_to_draw = (0, 255, 0) if self.state == "attack" else self.color
         points = self.get_triangle_points()
-        pygame.draw.polygon(screen, self.color, [(p.x, p.y) for p in points])
+        pygame.draw.polygon(screen, color_to_draw, [(p.x, p.y) for p in points])
 
         # debug: półprzezroczysta strefa
-        draw_neighbors_area(screen, self.pos, radius=100, color=(80, 80, 200), alpha=10)
+        draw_neighbors_area(screen, self.pos, radius=self.flocking_radius, color=(80, 80, 200), alpha=10)
 
         # debug: obwódki sąsiadów
         draw_neighbors_outline(screen, self.neighbors, outline_color=(0, 255, 0))
@@ -118,14 +132,43 @@ class Enemy:
         collision_with_walls(self.pos, self.radius, map_width, map_height)
 
     def enforce_non_penetration(self, agents):
-        """Wymusza brak nakładania się jednostek."""
-        for i, entity in enumerate(agents):
-            for j, other in enumerate(agents):
-                if i == j:
+        """Wymusza brak nakładania się jednostek.
+        nie pozwalamy, aby lider był przesuwany przez followers.
+        """
+        n = len(agents)
+        for i in range(n):
+            a = agents[i]
+            for j in range(i + 1, n):
+                b = agents[j]
+                # pomiń, jeśli to samo
+                if a is b:
                     continue
-                if circle_collision(entity.pos, entity.radius, other.pos, other.radius):
-                    resolve_circle_overlap(entity.pos, entity.radius, other.pos, other.radius)
 
+                delta = a.pos - b.pos
+                dist_sq = delta.length_squared()
+                min_dist = a.radius + b.radius
+
+                if dist_sq == 0:
+                    # losowy kierunek, by uniknąć podziału przez zero
+                    direction = pygame.Vector2(1, 0).rotate(random.uniform(0, 360))
+                    dist = 1.0
+                else:
+                    dist = math.sqrt(dist_sq)
+                    direction = delta / dist  # od b do a
+
+                overlap = min_dist - dist
+                if overlap > 0:
+                    # jeśli a jest liderem i b nie, przesuwamy tylko b
+                    if getattr(a, "is_group_leader", False) and not getattr(b, "is_group_leader", False):
+                        # przesuwamy b na zewnątrz (od a)
+                        b.pos -= direction * overlap
+                    elif getattr(b, "is_group_leader", False) and not getattr(a, "is_group_leader", False):
+                        # przesuwamy a na zewnątrz (od b)
+                        a.pos += direction * overlap
+                    else:
+                        half = overlap * 0.5
+                        a.pos += direction * half
+                        b.pos -= direction * half
     def find_neighbors(self, agents):
         """Zbiera listę sąsiadów tylko dla tego agenta."""
         self.neighbors = []
