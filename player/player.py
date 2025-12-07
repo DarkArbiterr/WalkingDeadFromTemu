@@ -2,6 +2,7 @@ import pygame
 import math
 from utils.geometry import ray_circle_intersection
 from utils.collision import circle_collision, resolve_circle_overlap, collision_with_walls
+from config import *
 
 class Player:
     def __init__(self, x, y, speed=150, radius=15):
@@ -14,6 +15,15 @@ class Player:
         self.shoot_cooldown = 0.5  # w sekundach
         self.time_since_last_shot = 0
         self.want_to_shoot = False
+
+        self.hp = PLAYER_HP
+        self.invulnerable = False
+        self.invulnerability_time = 2.0
+        self.inv_timer = 0.0
+
+        self.blink_timer = 0.0
+        self.blink_interval = 0.1  # jak szybko miga
+        self.visible = True
 
     def handle_shoot_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -66,6 +76,20 @@ class Player:
         # reset kliknięcia
         if not mouse_pressed:
             self.want_to_shoot = False
+
+        if self.invulnerable:
+            self.inv_timer -= dt
+            self.blink_timer += dt
+
+            # miganie przy obrazeniach
+            if self.blink_timer >= self.blink_interval:
+                self.visible = not self.visible
+                self.blink_timer = 0.0
+
+            # koniec nieśmiertelności
+            if self.inv_timer <= 0:
+                self.invulnerable = False
+                self.visible = True
 
     def collides_with_walls(self, map_width, map_height):
         collision_with_walls(self.pos, self.radius, map_width, map_height)
@@ -126,6 +150,9 @@ class Player:
         pygame.draw.line(screen, (255, 0, 0), self.pos, end_pos, 2)
 
     def draw(self, screen):
+        if not self.visible:
+            return
+
         # 3 wierzchołki trójkąta
         tip = self.pos + self.heading * self.radius
 
@@ -147,3 +174,14 @@ class Player:
 
         # pygame.draw.circle(screen, (255, 0, 0), (int(self.pos.x), int(self.pos.y)), self.radius, 1)
 
+    def take_damage(self, damage):
+        if self.invulnerable:
+            return
+
+        self.hp -= damage
+
+        # nieśmiertelnośc
+        self.invulnerable = True
+        self.inv_timer = self.invulnerability_time
+        self.blink_timer = 0.0
+        self.visible = False

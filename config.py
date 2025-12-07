@@ -8,3 +8,5 @@ OBSTACLE_MAX_R = 100
 
 ENEMY_COUNT = 35
 ATTACK_THRESHOLD = 9       # minimalna liczba botów do rozpoczęcia ataku
+
+PLAYER_HP = 3

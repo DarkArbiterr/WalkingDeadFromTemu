@@ -135,6 +135,7 @@ class Enemy:
         if circle_collision(self.pos, self.radius, player.pos, player.radius):
             # odpychanie gracza (jak przy przeszkodach)
             resolve_circle_overlap(self.pos, self.radius, player.pos, player.radius)
+            self.melee_atack(player)
             return True
         return False
 
@@ -192,3 +193,6 @@ class Enemy:
 
             if to.length_squared() < range_check ** 2:
                 self.neighbors.append(other)
+
+    def melee_atack(self, player):
+        player.take_damage(1)

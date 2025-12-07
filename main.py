@@ -3,6 +3,9 @@ from config import *
 from map.game_map import GameMap
 from player.player import Player
 from enemy.enemy import Enemy
+from ui.game_over_ui import GameOverUI
+from ui.health_ui import HealthUI
+
 
 def main():
     pygame.init()
@@ -11,6 +14,8 @@ def main():
     clock = pygame.time.Clock()
 
     player = Player(30, 30)
+    health_ui = HealthUI(player.hp)
+    game_over_ui = GameOverUI(WINDOW_WIDTH, WINDOW_HEIGHT)
 
     # create map
     game_map = GameMap(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -36,15 +41,29 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            player.handle_shoot_event(event)
+            if player:
+                player.handle_shoot_event(event)
 
         # draw
         screen.fill((30, 30, 30))  # background
-        player.update(dt, game_map, screen)
-        for enemy in game_map.enemies:
-            enemy.update(dt, game_map, player)
-        player.draw(screen)
+
+        if player:
+            player.update(dt, game_map, screen)
+            if player.hp <= 0:
+                player = None
+
+        if player:
+            for enemy in game_map.enemies:
+                enemy.update(dt, game_map, player)
+
+        if player:
+            player.draw(screen)
+
         game_map.draw(screen)
+        if player:
+            health_ui.draw(screen, player.hp)
+        else:
+            game_over_ui.draw(screen)
         pygame.display.flip()
 
     pygame.quit()
